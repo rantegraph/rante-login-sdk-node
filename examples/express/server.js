@@ -9,7 +9,7 @@
 // - Either redirect ends at the redirect URI, where handleCallback exchanges the code (private_key_jwt or PKCE alone)
 //   and validates the ID token.
 
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import cookieParser from 'cookie-parser';
@@ -20,6 +20,26 @@ import { BROWSER_SDK_COOKIES, RanteLoginClient, RanteLoginError } from 'rante-lo
 const SDK_SRC = 'https://login.rante.com/sdk/v1/rante-login.js';
 const SDK_INTEGRITY = 'sha384-2W12/NktCjRqFuXWiUtHr1yEtdrjBlCRWnJ+//FZMiqd1KRX/K+YMWLoMgF9R7wf';
 const SESSION_COOKIE = 'rante_express_session';
+
+// This website's own accounts. A person's first "Sign in with Rante" here is their sign-up: the account is created from
+// the claims they agreed to share, and every later sign-in finds it by `sub`. A real website keeps accounts in its
+// database; this example keeps them in memory, so they're gone when the server restarts.
+const accounts = new Map();
+
+function registerOrFind(claims) {
+  const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  let account = accounts.get(claims.sub);
+  const created = !account;
+  if (created) {
+    account = { id: randomUUID(), sub: claims.sub, name: null, email: null, createdAt: now };
+    accounts.set(claims.sub, account);
+  }
+  // Keep the details the person shares this time. Rante shares an email only once it's verified.
+  account.name = claims.name ?? account.name;
+  account.email = claims.email ?? account.email;
+  account.lastSignInAt = now;
+  return { account, created };
+}
 
 const env = process.env;
 if (Boolean(env.RANTE_LOGIN_KEY_PREFIX) !== Boolean(env.RANTE_LOGIN_PRIVATE_KEY_FILE)) {
@@ -187,12 +207,14 @@ function save(req) {
   return new Promise((resolve, reject) => req.session.save((error) => (error ? reject(error) : resolve())));
 }
 
-// A new session for the person who signed in: its ID changes, so a session fixed before sign-in is worthless.
+// A new session for the person who signed in: its ID changes, so a session fixed before sign-in is worthless. The
+// sign-in also creates or finds their account on this website.
 function startSession(req, user) {
+  const { created } = registerOrFind(user.claims);
   return new Promise((resolve, reject) => {
     req.session.regenerate((error) => {
       if (error) return reject(error);
-      req.session.user = { ...user, signedInAt: new Date().toISOString() };
+      req.session.user = { ...user, newAccount: created, signedInAt: new Date().toISOString() };
       req.session.save((saveError) => (saveError ? reject(saveError) : resolve()));
     });
   });
@@ -229,12 +251,38 @@ function signInPage(nonce) {
 function signedInPage(user) {
   return page('Signed in', `
     <h1>Signed in${user.claims.name ? ` as ${escapeHtml(user.claims.name)}` : ''}</h1>
+    <p>Signed in with: <strong>${escapeHtml(user.method)}</strong>, ${escapeHtml(user.signedInAt)}</p>
+    ${accountSection(user)}
+    <h2>ID token</h2>
     <p>This server validated the ID token below. Use <code>sub</code> as the person's ID on this website: it is
        pairwise, so other organizations' apps see a different value.</p>
-    <p>Signed in with: <strong>${escapeHtml(user.method)}</strong>, ${escapeHtml(user.signedInAt)}</p>
     ${claimsTable(user.claims)}
     <p><a href="/userinfo">Show userinfo</a></p>
     <form method="post" action="/auth/sign-out"><button type="submit">Sign out</button></form>`);
+}
+
+function accountSection(user) {
+  const account = accounts.get(user.claims.sub);
+  if (!account) {
+    return `
+    <h2>Your account on this website</h2>
+    <p>Not found: this example keeps accounts in memory, and the server has restarted since you signed in. Sign out and
+       in again.</p>`;
+  }
+  return `
+    <h2>Your account on this website</h2>
+    <p>${user.newAccount
+      ? 'Created at this sign-in from your Rante account: no separate sign-up form, and no password for this website.'
+      : 'Welcome back: this sign-in found your account by its Rante ID.'}</p>
+    <table><tbody>
+      <tr><th>Account ID</th><td>${escapeHtml(account.id)}</td></tr>
+      <tr><th>Linked Rante ID (<code>sub</code>)</th><td>${escapeHtml(account.sub)}</td></tr>
+      <tr><th>Name</th><td>${escapeHtml(account.name ?? 'not shared')}</td></tr>
+      <tr><th>Email</th><td>${escapeHtml(account.email ?? "not shared (Rante shares an email only once it's verified)")}</td></tr>
+      <tr><th>Created</th><td>${escapeHtml(account.createdAt)}</td></tr>
+      <tr><th>Last sign-in</th><td>${escapeHtml(account.lastSignInAt)}</td></tr>
+    </tbody></table>
+    <p>This example keeps accounts in memory. A real website stores them in its database, keyed by <code>sub</code>.</p>`;
 }
 
 function claimsTable(claims) {
