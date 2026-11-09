@@ -4,10 +4,10 @@
   "private": true,
   "description": "\"Sign in with Rante\" for Node.js servers: authorize URL with PKCE, code exchange with private_key_jwt, ID token validation and userinfo, on jose.",
   "license": "MIT",
-  "homepage": "https://github.com/rante-corporation/rante-login-sdk-node#readme",
+  "homepage": "https://github.com/rantegraph/rante-login-sdk-node#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rante-corporation/rante-login-sdk-node.git"
+    "url": "git+https://github.com/rantegraph/rante-login-sdk-node.git"
   },
   "type": "module",
   "exports": {

@@ -7,7 +7,7 @@
 - validates the ID token before you trust who signed in;
 - calls the userinfo endpoint.
 
-It finishes sign-ins started by the [Rante Login browser SDK](https://github.com/rante-corporation/rante-login-sdk)
+It finishes sign-ins started by the [Rante Login browser SDK](https://github.com/rantegraph/rante-login-sdk)
 too, including FedCM sign-ins in Chrome and Edge.
 
 The SDK is a thin layer over [jose](https://github.com/panva/jose), which does every JWT and key operation. It needs
@@ -18,7 +18,7 @@ Node.js 20.19 or later.
 The package isn't on npm. Install it from GitHub:
 
 ```sh
-npm install github:rante-corporation/rante-login-sdk-node
+npm install github:rantegraph/rante-login-sdk-node
 ```
 
 ## Register your app
