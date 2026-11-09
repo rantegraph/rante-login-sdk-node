@@ -1,0 +1,31 @@
+{
+  "name": "rante-login-sdk-node",
+  "version": "1.0.0",
+  "private": true,
+  "description": "\"Sign in with Rante\" for Node.js servers: authorize URL with PKCE, code exchange with private_key_jwt, ID token validation and userinfo, on jose.",
+  "license": "MIT",
+  "homepage": "https://github.com/rante-corporation/rante-login-sdk-node#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rante-corporation/rante-login-sdk-node.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "jose": "^6.2.13"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "rante-login-example-express",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sign in with Rante: an Express website on the Rante Login SDK for Node.js.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0",
+    "rante-login-sdk-node": "file:../.."
+  }
+}
